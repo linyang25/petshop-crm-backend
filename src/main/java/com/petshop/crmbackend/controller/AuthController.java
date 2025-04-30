@@ -38,6 +38,11 @@ public class AuthController {
         String username = registerRequest.getUsername();
         String phone = registerRequest.getPhone();
 
+
+        if (userRepository.existsByUsername(username)) {
+            return ApiResponse.error(400, "用户名已存在");
+        }
+
         if (userRepository.existsByUsernameAndPhone(username, phone)) {
             return ApiResponse.error(400, "用户已存在");
         }
