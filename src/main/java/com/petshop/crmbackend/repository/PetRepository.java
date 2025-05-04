@@ -8,6 +8,8 @@ import java.util.Optional;
 
 public interface PetRepository extends JpaRepository<Pet, Long> {
     boolean existsByPetId(String petId);
+    Optional<Pet> findByPetId(String petId);
+
 
     boolean existsByCustomerNameAndSpeciesAndBreedNameAndPetNameAndGenderAndBirthday(
             String customerName,

@@ -33,7 +33,10 @@ public class Pet {
 
     private LocalDateTime createdAt;
 
-    // --- Getter & Setter ---
+    @Column(name = "is_deleted")
+    private boolean isDeleted = false;
+
+
     public Long getId() {
         return id;
     }
@@ -120,5 +123,12 @@ public class Pet {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(Boolean isDeleted) {
+        this.isDeleted = isDeleted;
     }
 }

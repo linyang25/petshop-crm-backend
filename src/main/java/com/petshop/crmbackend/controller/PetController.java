@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 
 @RestController
@@ -56,7 +57,7 @@ public class PetController {
             return ApiResponse.error(400, "宠物信息已添加，petId 为: " + petId);
         }
 
-        // 构建实体
+
         Pet pet = new Pet();
         pet.setPetId(petId);
         pet.setCustomerName(request.getCustomerName());
@@ -99,4 +100,27 @@ public class PetController {
         }
         return null;
     }
+
+    @DeleteMapping("/delete/{petId}")
+    @Operation(summary = "逻辑删除宠物信息")
+    public ApiResponse<?> deletePet(@PathVariable String petId) {
+        Optional<Pet> optionalPet = petRepository.findByPetId(petId);
+        if (!optionalPet.isPresent()) {
+            return ApiResponse.error(404, "未找到对应的宠物，无法删除");
+        }
+
+        Pet pet = optionalPet.get();
+        if (pet.getIsDeleted()) {
+            return ApiResponse.error(400, "宠物信息已删除,无法再次删除");
+        }
+
+        pet.setIsDeleted(true);
+        petRepository.save(pet);
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("petId", pet.getPetId());
+        return ApiResponse.success("宠物信息删除成功", responseData);
+    }
+
+
+
 }
