@@ -10,26 +10,43 @@ public class Pet {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long petId;
+    private Long id;
+
+    @Column(unique = true)
+    private String petId;
 
     private String customerName;
+
     private String species;
+
     private String breedName;
+
     private String petName;
+
     private String gender;
+
     private LocalDate birthday;
+
     private String profilePhoto;
-    private LocalDateTime createdAt;
+
     private String description;
 
+    private LocalDateTime createdAt;
 
-    // --- Getter and Setter ---
+    // --- Getter & Setter ---
+    public Long getId() {
+        return id;
+    }
 
-    public Long getPetId() {
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getPetId() {
         return petId;
     }
 
-    public void setPetId(Long petId) {
+    public void setPetId(String petId) {
         this.petId = petId;
     }
 
@@ -89,13 +106,6 @@ public class Pet {
         this.profilePhoto = profilePhoto;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
     public String getDescription() {
         return description;
     }
@@ -104,4 +114,11 @@ public class Pet {
         this.description = description;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 }
