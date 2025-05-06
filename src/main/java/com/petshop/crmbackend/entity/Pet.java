@@ -13,7 +13,7 @@ public class Pet {
     private Long id;
 
     @Column(unique = true)
-    private String petId;
+    private Long petId;
 
     private String customerName;
 
@@ -45,11 +45,11 @@ public class Pet {
         this.id = id;
     }
 
-    public String getPetId() {
+    public Long getPetId() {
         return petId;
     }
 
-    public void setPetId(String petId) {
+    public void setPetId(Long petId) {
         this.petId = petId;
     }
 

@@ -6,11 +6,11 @@ import com.petshop.crmbackend.repository.PetRepository;
 import com.petshop.crmbackend.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
-
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -21,7 +21,6 @@ import java.util.Random;
 public class PetController {
 
     private final PetRepository petRepository;
-
     public PetController(PetRepository petRepository) {
         this.petRepository = petRepository;
     }
@@ -30,7 +29,7 @@ public class PetController {
     @Operation(summary = "添加宠物信息")
     public ApiResponse<?> addPet(@Valid @RequestBody AddPetRequest request) {
         // 生成唯一 petId（五位数）
-        String petId = generateUniquePetId();
+        Long petId = generateUniquePetId();
         if (petId == null) {
             return ApiResponse.error(400, "系统繁忙，请稍后再试");
         }
@@ -77,10 +76,10 @@ public class PetController {
     }
 
     // 生成唯一 petId（5位数字）
-    private String generateUniquePetId() {
+    private Long generateUniquePetId() {
         Random random = new Random();
         for (int i = 0; i < 5; i++) {
-            String candidate = String.format("%05d", random.nextInt(100000));
+            Long candidate = (long) (random.nextInt(100000));
             if (!petRepository.existsByPetId(candidate)) {
                 return candidate;
             }
@@ -103,7 +102,7 @@ public class PetController {
 
     @DeleteMapping("/delete/{petId}")
     @Operation(summary = "逻辑删除宠物信息")
-    public ApiResponse<?> deletePet(@PathVariable String petId) {
+    public ApiResponse<?> deletePet(@PathVariable Long petId) {
         Optional<Pet> optionalPet = petRepository.findByPetId(petId);
         if (!optionalPet.isPresent()) {
             return ApiResponse.error(404, "未找到对应的宠物，无法删除");
@@ -120,6 +119,44 @@ public class PetController {
         responseData.put("petId", pet.getPetId());
         return ApiResponse.success("宠物信息删除成功", responseData);
     }
+
+
+    @PutMapping("/update/{petId}")
+    @Operation(summary = "编辑宠物信息（不允许修改客户名）")
+    public ApiResponse<?> updatePet(@PathVariable Long petId, @Valid @RequestBody AddPetRequest request) {
+        Optional<Pet> optionalPet = petRepository.findByPetIdAndIsDeletedFalse(petId);
+        if (!optionalPet.isPresent()) {
+            return ApiResponse.error(404, "未找到对应的宠物信息");
+        }
+
+        Pet pet = optionalPet.get();
+
+        // customerName 不可修改
+        // pet.setCustomerName(request.getCustomerName());
+
+        pet.setSpecies(request.getSpecies());
+        pet.setBreedName(request.getBreedName());
+        pet.setPetName(request.getPetName());
+        pet.setGender(request.getGender());
+
+        if (request.getBirthday() != null && !request.getBirthday().isEmpty()) {
+            try {
+                LocalDate birthday = LocalDate.parse(request.getBirthday(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                pet.setBirthday(birthday);
+            } catch (DateTimeParseException e) {
+                return ApiResponse.error(400, "生日格式错误，应为 yyyy-MM-dd");
+            }
+        }
+
+        pet.setProfilePhoto(request.getProfilePhoto());
+        pet.setDescription(request.getDescription());
+
+        petRepository.save(pet);
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("petId", pet.getPetId());
+        return ApiResponse.success("宠物信息更新成功", responseData);
+    }
+
 
 
 
