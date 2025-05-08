@@ -39,4 +39,7 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
 
     @Query("SELECT AVG(DATEDIFF(CURRENT_DATE, p.birthday)) FROM Pet p WHERE p.isDeleted = false")
     Double averageAgeDays();
+
+    List<Pet> findByPetNameContaining(String petName);
+
 }

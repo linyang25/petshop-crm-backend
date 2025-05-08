@@ -2,6 +2,7 @@ package com.petshop.crmbackend.repository;
 
 import com.petshop.crmbackend.entity.Appointment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -11,7 +12,10 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+//public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+public interface AppointmentRepository
+        extends JpaRepository<Appointment, Long>,
+        JpaSpecificationExecutor<Appointment> {
     boolean existsByPetIdAndAppointmentDateAndAppointmentTimeAndIdNot(
             Long petId,
             java.time.LocalDate appointmentDate,

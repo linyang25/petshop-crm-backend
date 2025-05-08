@@ -1,5 +1,8 @@
 package com.petshop.crmbackend.controller;
 
+
+import javax.persistence.criteria.Predicate;
+
 import com.petshop.crmbackend.common.ApiResponse;
 import com.petshop.crmbackend.dto.AppointmentCancelRequest;
 import com.petshop.crmbackend.dto.AppointmentRequest;
@@ -8,14 +11,19 @@ import com.petshop.crmbackend.entity.Pet;
 import com.petshop.crmbackend.repository.AppointmentRepository;
 import com.petshop.crmbackend.repository.PetRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/appointments")
@@ -185,4 +193,81 @@ public class AppointmentController {
 
         return ApiResponse.success("查询成功", data);
     }
+
+
+    @GetMapping("/list")
+    @Operation(summary = "多条件查询预约列表（支持 petId, appointmentId, customerName, petName, status, 日期区间 等，无分页）")
+    public ApiResponse<?> listAppointments(
+            @RequestParam(required = false) Long petId,
+            @RequestParam(required = false) String appointmentId,
+            @RequestParam(required = false) String customerName,
+            @RequestParam(required = false) String petName,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        Specification<Appointment> spec = (root, query, cb) -> {
+            List<Predicate> preds = new ArrayList<>();
+
+            if (petId != null) {
+                preds.add(cb.equal(root.get("petId"), petId));
+            }
+            if (appointmentId != null && !appointmentId.isEmpty()) {
+                preds.add(cb.equal(root.get("appointmentId"), appointmentId));
+            }
+            if (customerName != null && !customerName.isEmpty()) {
+                preds.add(cb.like(root.get("customerName"), "%" + customerName + "%"));
+            }
+            if (status != null && !status.isEmpty()) {
+                preds.add(cb.equal(root.get("status"), status));
+            }
+            if (startDate != null) {
+                preds.add(cb.greaterThanOrEqualTo(root.get("appointmentDate"), startDate));
+            }
+            if (endDate != null) {
+                preds.add(cb.lessThanOrEqualTo(root.get("appointmentDate"), endDate));
+            }
+
+            if (petName != null && !petName.isEmpty()) {
+                // 先查出匹配的 petId 列表
+                List<Long> ids = petRepository
+                        .findByPetNameContaining(petName) // 或改用 findByPetNameContaining
+                        .stream()
+                        .map(Pet::getPetId)
+                        .collect(Collectors.toList());
+                if (ids.isEmpty()) {
+                    preds.add(cb.disjunction()); // 无记录
+                } else {
+                    preds.add(root.get("petId").in(ids));
+                }
+            }
+
+            return cb.and(preds.toArray(new Predicate[0]));
+        };
+
+        // 按日期、时间倒序
+        Sort sort = Sort.by("appointmentDate").descending()
+                .and(Sort.by("appointmentTime").descending());
+
+        List<Appointment> resultList = appointmentRepository.findAll(spec, sort);
+
+        List<Map<String,Object>> list = resultList.stream().map(ap -> {
+            Map<String,Object> m = new HashMap<>();
+            m.put("appointmentId",   ap.getAppointmentId());
+            m.put("petId",           ap.getPetId());
+            m.put("customerName",    ap.getCustomerName());
+            m.put("phone",           ap.getPhone());
+            m.put("serviceType",     ap.getServiceType());
+            m.put("status",          ap.getStatus());
+            m.put("appointmentDate", ap.getAppointmentDate());
+            m.put("appointmentTime", ap.getAppointmentTime());
+            m.put("notes",           ap.getNotes());
+            return m;
+        }).collect(Collectors.toList());
+
+        return ApiResponse.success("查询成功", list);
+    }
 }
+
