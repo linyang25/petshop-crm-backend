@@ -180,19 +180,20 @@ public class PetController {
     }
 
 
-    @PutMapping("/update/{petId}")
-    @Operation(summary = "编辑宠物信息（不允许修改客户名）")
-    public ApiResponse<?> updatePet(@PathVariable Long petId, @Valid @RequestBody AddPetRequest request) {
+    @PutMapping(value = "/update/{petId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "编辑宠物信息及更换照片（不允许修改客户名）")
+    public ApiResponse<?> updatePet(
+            @PathVariable Long petId,
+            @RequestPart("info") @Valid AddPetRequest request,  // JSON 部分
+            @RequestPart(value = "file", required = false) MultipartFile file  // 文件部分，可选上传
+    ) throws IOException {
         Optional<Pet> optionalPet = petRepository.findByPetIdAndIsDeletedFalse(petId);
         if (!optionalPet.isPresent()) {
             return ApiResponse.error(404, "未找到对应的宠物信息");
         }
 
         Pet pet = optionalPet.get();
-
         // customerName 不可修改
-        // pet.setCustomerName(request.getCustomerName());
-
         pet.setSpecies(request.getSpecies());
         pet.setBreedName(request.getBreedName());
         pet.setPetName(request.getPetName());
@@ -200,24 +201,27 @@ public class PetController {
 
         if (request.getBirthday() != null && !request.getBirthday().isEmpty()) {
             try {
-                LocalDate birthday = LocalDate.parse(request.getBirthday(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                LocalDate birthday = LocalDate.parse(request.getBirthday(),
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 pet.setBirthday(birthday);
             } catch (DateTimeParseException e) {
                 return ApiResponse.error(400, "生日格式错误，应为 yyyy-MM-dd");
             }
         }
 
+        // 如果上传了新文件，就替换图片 URL
+        if (file != null && !file.isEmpty()) {
+            String url = storageService.upload(file, pet.getPetId().toString());
+            pet.setProfilePhoto(url);
+        }
 
-        //String url = storageService.upload(file, pet.getPetId().toString());
-        //pet.setProfilePhoto(url);
         pet.setDescription(request.getDescription());
-
         petRepository.save(pet);
+
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("petId", pet.getPetId());
         return ApiResponse.success("宠物信息更新成功", responseData);
     }
-
 
     @GetMapping("/detail/{petId}")
     @Operation(summary = "获取宠物详细信息及预约状态")

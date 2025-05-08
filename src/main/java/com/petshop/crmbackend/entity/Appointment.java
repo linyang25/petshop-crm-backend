@@ -25,7 +25,10 @@ public class Appointment {
 
     private String serviceType;
 
-    private String status;
+   // private String status;
+    @Column(nullable = false)
+    private String status = "已预约";  // 默认状态
+
 
     private String notes;
 
@@ -43,6 +46,18 @@ public class Appointment {
         this.reminderSent = reminderSent;
     }
 
+
+    @Column(name = "appointment_id", nullable = false, unique = true, length = 36)
+    private String appointmentId;
+
+
+    public String getAppointmentId() {
+        return appointmentId;
+    }
+
+    public void setAppointmentId(String appointmentId) {
+        this.appointmentId = appointmentId;
+    }
 
     public Long getId() {
         return id;

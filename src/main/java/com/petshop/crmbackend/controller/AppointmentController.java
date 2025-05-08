@@ -1,8 +1,10 @@
 package com.petshop.crmbackend.controller;
 
 import com.petshop.crmbackend.common.ApiResponse;
+import com.petshop.crmbackend.dto.AppointmentCancelRequest;
 import com.petshop.crmbackend.dto.AppointmentRequest;
 import com.petshop.crmbackend.entity.Appointment;
+import com.petshop.crmbackend.entity.Pet;
 import com.petshop.crmbackend.repository.AppointmentRepository;
 import com.petshop.crmbackend.repository.PetRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/appointments")
@@ -40,11 +43,21 @@ public class AppointmentController {
                 request.getAppointmentTime()
         );
 
+        Appointment appointment = new Appointment();
+
+
         if (exists) {
-            return ApiResponse.error(400, "该宠物在此时间已有预约，不能重复预约");
+            return ApiResponse.error(400, "该宠物在该时间已有预约");
         }
 
-        Appointment appointment = new Appointment();
+       // Appointment appointment = new Appointment();
+        String code;
+        do {
+            code = String.format("%08d", new Random().nextInt(100_000_000));
+        } while (appointmentRepository.existsByAppointmentId(code));
+
+
+        appointment.setAppointmentId(code);
         appointment.setAppointmentTime(request.getAppointmentTime()); // 类型为 LocalTime
         appointment.setAppointmentDate(request.getAppointmentDate()); // 类型为 LocalDate
         appointment.setCustomerName(request.getCustomerName());
@@ -52,7 +65,7 @@ public class AppointmentController {
         appointment.setPhone(request.getPhone());
         appointment.setServiceType(request.getServiceType());
         appointment.setNotes(request.getNotes());
-        appointment.setStatus("未开始");
+        appointment.setStatus("已预约");
         appointment.setCreatedAt(LocalDateTime.now());
         appointment.setUpdatedAt(LocalDateTime.now());
 
@@ -60,38 +73,26 @@ public class AppointmentController {
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("petId", appointment.getPetId());
+        responseData.put("appointmentId", appointment.getAppointmentId());
         responseData.put("appointmentDate", appointment.getAppointmentDate());
         responseData.put("appointmentTime", appointment.getAppointmentTime());
 
         return ApiResponse.success("预约创建成功", responseData);
     }
 
-    @PutMapping("/update/{id}")
-    @Operation(summary = "更新预约信息（不可修改宠物ID）")
-    public ApiResponse<?> updateAppointment(@PathVariable Long id, @Valid @RequestBody AppointmentRequest request) {
-        Optional<Appointment> optionalAppointment = appointmentRepository.findById(id);
-        if (!optionalAppointment.isPresent()) {
+    @PutMapping("/update/{appointmentId}")
+    @Operation(summary = "更新预约信息（按业务预约号查询，只能修改日期、时间、类型、状态、备注）")
+    public ApiResponse<?> updateAppointment(
+            @PathVariable String appointmentId,
+            @Valid @RequestBody AppointmentRequest request) {
+
+        Optional<Appointment> optional = appointmentRepository.findByAppointmentId(appointmentId);
+        if (!optional.isPresent()) {
             return ApiResponse.error(404, "未找到对应的预约记录");
         }
+        Appointment appointment = optional.get();
 
-        Appointment appointment = optionalAppointment.get();
-
-        // 检查是否试图修改 petId（不允许修改）
-        if (!appointment.getPetId().equals(request.getPetId())) {
-            return ApiResponse.error(400, "不可修改宠物ID");
-        }
-
-        // 检查是否存在相同时间的重复预约
-        boolean exists = appointmentRepository.existsByPetIdAndAppointmentDateAndAppointmentTimeAndIdNot(
-                request.getPetId(), request.getAppointmentDate(), request.getAppointmentTime(), id
-        );
-        if (exists) {
-            return ApiResponse.error(400, "该宠物在该时间已有预约，无法修改");
-        }
-
-        // 更新可修改字段
-        appointment.setCustomerName(request.getCustomerName());
-        appointment.setPhone(request.getPhone());
+        // 只允许修改的字段
         appointment.setAppointmentDate(request.getAppointmentDate());
         appointment.setAppointmentTime(request.getAppointmentTime());
         appointment.setServiceType(request.getServiceType());
@@ -101,8 +102,87 @@ public class AppointmentController {
 
         appointmentRepository.save(appointment);
 
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("appointmentId", appointment.getId());
-        return ApiResponse.success("预约信息更新成功", responseData);
+        Map<String, Object> data = new HashMap<>();
+        data.put("appointmentId", appointment.getAppointmentId());
+        data.put("appointmentDate", appointment.getAppointmentDate());
+        data.put("appointmentTime", appointment.getAppointmentTime());
+        data.put("serviceType", appointment.getServiceType());
+        data.put("status", appointment.getStatus());
+        data.put("notes", appointment.getNotes());
+        return ApiResponse.success("预约更新成功", data);
+    }
+
+
+    @PutMapping("/cancel")
+    @Operation(summary = "取消预约（根据 appointmentId，或 根据 petId+日期+时间）")
+    public ApiResponse<?> cancelAppointment(@Valid @RequestBody AppointmentCancelRequest req) {
+        Optional<Appointment> optional = Optional.empty();
+
+        // 优先用 appointmentId
+        if (req.getAppointmentId() != null) {
+            optional = appointmentRepository.findByAppointmentId(req.getAppointmentId());
+
+    } else if (req.getPetId() != null
+                && req.getAppointmentDate() != null
+                && req.getAppointmentTime() != null) {
+            optional = appointmentRepository
+                    .findByPetIdAndAppointmentDateAndAppointmentTime(
+                            req.getPetId(),
+                            req.getAppointmentDate(),
+                            req.getAppointmentTime());
+        } else {
+            return ApiResponse.error(400, "请提供 appointmentId，或 petId + appointmentDate + appointmentTime");
+        }
+
+        if (!optional.isPresent()) {
+            return ApiResponse.error(404, "未找到对应的预约");
+        }
+
+        Appointment appointment = optional.get();
+        if ("已取消".equals(appointment.getStatus())) {
+            return ApiResponse.error(400, "该预约已是取消状态");
+        }
+
+        appointment.setStatus("已取消");
+        appointment.setUpdatedAt(LocalDateTime.now());
+        appointmentRepository.save(appointment);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("appointmentId", appointment.getAppointmentId());
+        data.put("status", appointment.getStatus());
+        return ApiResponse.success("预约取消成功", data);
+    }
+    @GetMapping("/detail/{appointmentId}")
+    @Operation(summary = "获取预约详情")
+    public ApiResponse<?> getAppointmentDetail(@PathVariable String appointmentId) {
+        Optional<Appointment> optional = appointmentRepository.findByAppointmentId(appointmentId);
+        if (!optional.isPresent()) {
+            return ApiResponse.error(404, "未找到对应的预约");
+        }
+        Appointment ap = optional.get();
+        // 再查宠物
+        Optional<Pet> optionalPet = petRepository.findByPetIdAndIsDeletedFalse(ap.getPetId());
+        if (!optionalPet.isPresent()) {
+            return ApiResponse.error(404, "未找到对应的宠物");
+        }
+        Pet pet = optionalPet.get();
+
+        Map<String,Object> data = new HashMap<>();
+        data.put("appointmentId",     ap.getAppointmentId());
+        data.put("petId",             ap.getPetId());
+        data.put("petName",         pet.getPetName());
+        data.put("species",         pet.getSpecies());
+        data.put("breedName",       pet.getBreedName());
+        data.put("serviceType",       ap.getServiceType());
+        data.put("appointmentDate",   ap.getAppointmentDate());
+        data.put("appointmentTime",   ap.getAppointmentTime());
+        data.put("notes",             ap.getNotes());
+        data.put("customerName",      ap.getCustomerName());
+        data.put("phone",             ap.getPhone());
+        data.put("status",            ap.getStatus());
+        data.put("createdAt",         ap.getCreatedAt());
+        data.put("updatedAt",         ap.getUpdatedAt());
+
+        return ApiResponse.success("查询成功", data);
     }
 }
