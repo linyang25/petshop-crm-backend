@@ -16,7 +16,7 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
 
     boolean existsByPetIdAndIsDeletedFalse(Long petId);  // 删除 static
 
-    boolean existsByCustomerNameAndSpeciesAndBreedNameAndPetNameAndGenderAndBirthday(
+    Optional<Pet> findByCustomerNameAndSpeciesAndBreedNameAndPetNameAndGenderAndBirthday(
             String customerName,
             String species,
             String breedName,

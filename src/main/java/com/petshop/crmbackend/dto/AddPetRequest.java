@@ -18,7 +18,7 @@ public class AddPetRequest {
 
     private String gender;
     private String birthday;
-    private String profilePhoto;  // 可选：图片链接
+   // private String profilePhoto;  // 可选：图片链接
     private String description;   // 可选：品种或宠物说明
 
 
@@ -71,13 +71,13 @@ public class AddPetRequest {
         this.birthday = birthday;
     }
 
-    public String getProfilePhoto() {
-        return profilePhoto;
-    }
+//    public String getProfilePhoto() {
+//        return profilePhoto;
+//    }
 
-    public void setProfilePhoto(String profilePhoto) {
-        this.profilePhoto = profilePhoto;
-    }
+//    public void setProfilePhoto(String profilePhoto) {
+//        this.profilePhoto = profilePhoto;
+//    }
 
     public String getDescription() {
         return description;

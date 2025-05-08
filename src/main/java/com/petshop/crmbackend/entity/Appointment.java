@@ -33,6 +33,16 @@ public class Appointment {
 
     private LocalDateTime updatedAt;
 
+    private boolean reminderSent = false;
+
+    public boolean isReminderSent() {
+        return reminderSent;
+    }
+
+    public void setReminderSent(boolean reminderSent) {
+        this.reminderSent = reminderSent;
+    }
+
 
     public Long getId() {
         return id;
