@@ -25,6 +25,9 @@ public class Appointment {
 
     private String serviceType;
 
+    @Column(name = "customer_email", nullable = false, length = 255)
+    private String customerEmail;
+
    // private String status;
     @Column(nullable = false)
     private String status = "已预约";  // 默认状态
@@ -145,5 +148,11 @@ public class Appointment {
 
     public void setPetId(Long petId) {
         this.petId = petId;
+    }
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 }

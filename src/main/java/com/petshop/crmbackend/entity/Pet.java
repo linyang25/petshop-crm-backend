@@ -36,6 +36,17 @@ public class Pet {
     @Column(name = "is_deleted")
     private boolean isDeleted = false;
 
+//    @Column(name = "customer_email", length = 255)
+//    private String customerEmail;
+
+
+//    public String getCustomerEmail() {
+//        return customerEmail;
+//    }
+//    public void setCustomerEmail(String customerEmail) {
+//        this.customerEmail = customerEmail;
+//    }
+
 
     public Long getId() {
         return id;

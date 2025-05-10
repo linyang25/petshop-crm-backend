@@ -1,5 +1,7 @@
 package com.petshop.crmbackend.dto;
 
+import org.hibernate.validator.constraints.Email;
+
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -14,6 +16,10 @@ public class AppointmentRequest {
 
     @NotNull(message = "联系电话不能为空")
     private String phone;
+
+    @NotNull(message = "客户邮箱不能为空")
+    @Email(message = "邮箱格式不正确")
+    private String customerEmail;
 
     @NotNull(message = "预约日期不能为空")
     private LocalDate appointmentDate;
@@ -31,6 +37,15 @@ public class AppointmentRequest {
     public Long getPetId() {
         return petId;
     }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
+    }
+
 
     public void setPetId(Long petId) {
         this.petId = petId;

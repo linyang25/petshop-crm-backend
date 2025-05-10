@@ -1,6 +1,8 @@
 package com.petshop.crmbackend.dto;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
 
 public class AddPetRequest {
 
@@ -20,6 +22,9 @@ public class AddPetRequest {
     private String birthday;
    // private String profilePhoto;  // 可选：图片链接
     private String description;   // 可选：品种或宠物说明
+
+//    @Email(message = "邮箱格式不正确")
+//    private String customerEmail;
 
 
     // Getter & Setter
@@ -70,6 +75,12 @@ public class AddPetRequest {
     public void setBirthday(String birthday) {
         this.birthday = birthday;
     }
+//    public String getCustomerEmail() {
+//        return customerEmail;
+//    }
+//    public void setCustomerEmail(String customerEmail) {
+//        this.customerEmail = customerEmail;
+//    }
 
 //    public String getProfilePhoto() {
 //        return profilePhoto;

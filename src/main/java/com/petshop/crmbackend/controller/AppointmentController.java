@@ -76,6 +76,8 @@ public class AppointmentController {
         appointment.setStatus("已预约");
         appointment.setCreatedAt(LocalDateTime.now());
         appointment.setUpdatedAt(LocalDateTime.now());
+        appointment.setCustomerEmail(request.getCustomerEmail());
+
 
         appointmentRepository.save(appointment);
 
@@ -84,6 +86,7 @@ public class AppointmentController {
         responseData.put("appointmentId", appointment.getAppointmentId());
         responseData.put("appointmentDate", appointment.getAppointmentDate());
         responseData.put("appointmentTime", appointment.getAppointmentTime());
+        responseData.put("customerEmail", appointment.getCustomerEmail());
 
         return ApiResponse.success("预约创建成功", responseData);
     }
@@ -117,6 +120,8 @@ public class AppointmentController {
         data.put("serviceType", appointment.getServiceType());
         data.put("status", appointment.getStatus());
         data.put("notes", appointment.getNotes());
+        //data.put("customerEmail", appointment.getCustomerEmail());
+
         return ApiResponse.success("预约更新成功", data);
     }
 
@@ -190,6 +195,8 @@ public class AppointmentController {
         data.put("status",            ap.getStatus());
         data.put("createdAt",         ap.getCreatedAt());
         data.put("updatedAt",         ap.getUpdatedAt());
+        data.put("customerEmail",         ap.getCustomerEmail());
+
 
         return ApiResponse.success("查询成功", data);
     }
@@ -253,8 +260,12 @@ public class AppointmentController {
 
         List<Appointment> resultList = appointmentRepository.findAll(spec, sort);
 
+
         List<Map<String,Object>> list = resultList.stream().map(ap -> {
             Map<String,Object> m = new HashMap<>();
+            // 查一下宠物
+            petRepository.findByPetIdAndIsDeletedFalse(ap.getPetId())
+                    .ifPresent(pet -> m.put("petName", pet.getPetName()));
             m.put("appointmentId",   ap.getAppointmentId());
             m.put("petId",           ap.getPetId());
             m.put("customerName",    ap.getCustomerName());
@@ -264,6 +275,11 @@ public class AppointmentController {
             m.put("appointmentDate", ap.getAppointmentDate());
             m.put("appointmentTime", ap.getAppointmentTime());
             m.put("notes",           ap.getNotes());
+            m.put("customerEmail",         ap.getCustomerEmail());
+
+
+
+
             return m;
         }).collect(Collectors.toList());
 

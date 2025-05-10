@@ -1,5 +1,6 @@
 package com.petshop.crmbackend.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.petshop.crmbackend.dto.AddPetRequest;
 import com.petshop.crmbackend.entity.Appointment;
 import com.petshop.crmbackend.entity.Pet;
@@ -49,35 +50,45 @@ public class PetController {
         this.storageService = s3StorageService;
     }
 
-
     @PostMapping(path = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "添加宠物信息及照片")
     public ApiResponse<?> addPet(
-            @Parameter(
-                    in = ParameterIn.DEFAULT,
-                    name = "info",
-                    description = "宠物信息 JSON",
-                    required = true,
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = AddPetRequest.class)
-                    )
-            )
-            @RequestPart("info") @Valid AddPetRequest info,
-
-            // —— 第二个 part，指定 mediaType = application/octet-stream
-            @Parameter(
-                    in = ParameterIn.DEFAULT,
-                    name = "file",
-                    description = "上传的照片",
-                    required = true,
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE,
-                            schema = @Schema(type = "string", format = "binary")
-                    )
-            )
+            @RequestParam("info") String infoJson,
             @RequestPart("file") MultipartFile file
-    )  throws IOException {
+    ) throws IOException {
+        // 把 JSON 字符串反序列化
+        AddPetRequest info = new ObjectMapper().readValue(infoJson, AddPetRequest.class);
+
+
+//    @PostMapping(path = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    @Operation(summary = "添加宠物信息及照片")
+//    public ApiResponse<?> addPet(
+//            @Parameter(
+//                    in = ParameterIn.DEFAULT,
+//                    name = "info",
+//                    description = "宠物信息 JSON",
+//                    required = true,
+//                    content = @Content(
+//                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+//                            schema = @Schema(implementation = AddPetRequest.class)
+//                    )
+//            )
+//            @RequestPart("info") @Valid AddPetRequest info,
+//
+//            // —— 第二个 part，指定 mediaType = application/octet-stream
+//            @Parameter(
+//                    in = ParameterIn.DEFAULT,
+//                    name = "file",
+//                    description = "上传的照片",
+//                    required = true,
+//                    content = @Content(
+//                            mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+//                            schema = @Schema(type = "string", format = "binary")
+//                    )
+//            )
+//            @RequestPart("file") MultipartFile file
+//    )  throws IOException {
+
         // 生成唯一 petId（五位数）
         Long petId = generateUniquePetId();
         if (petId == null) {
@@ -116,6 +127,8 @@ public class PetController {
         //pet.setProfilePhoto(request.getProfilePhoto());
         pet.setDescription(info.getDescription());
         pet.setCreatedAt(LocalDateTime.now());
+       // pet.setCustomerEmail(info.getCustomerEmail());
+
 
 
         String original = file.getOriginalFilename();
@@ -131,6 +144,8 @@ public class PetController {
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("petId", pet.getPetId());
         responseData.put("URL", url);
+//        responseData.put("customerEmail", pet.getCustomerEmail());
+
         return ApiResponse.success("宠物信息添加成功", responseData);
     }
 
@@ -179,14 +194,26 @@ public class PetController {
         return ApiResponse.success("宠物信息删除成功", responseData);
     }
 
-
-    @PutMapping(value = "/update/{petId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/update/{petId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "编辑宠物信息及更换照片（不允许修改客户名）")
     public ApiResponse<?> updatePet(
             @PathVariable Long petId,
-            @RequestPart("info") @Valid AddPetRequest request,  // JSON 部分
-            @RequestPart(value = "file", required = false) MultipartFile file  // 文件部分，可选上传
+            @RequestParam("info") String infoJson,
+            @RequestPart(value = "file", required = false) MultipartFile file
     ) throws IOException {
+        // 1. 反序列化 JSON
+        AddPetRequest request = new ObjectMapper()
+                .readValue(infoJson, AddPetRequest.class);
+
+
+//    @PutMapping(value = "/update/{petId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    @Operation(summary = "编辑宠物信息及更换照片（不允许修改客户名）")
+//    public ApiResponse<?> updatePet(
+//            @PathVariable Long petId,
+//            @RequestPart("info") @Valid AddPetRequest request,  // JSON 部分
+//            @RequestPart(value = "file", required = false) MultipartFile file  // 文件部分，可选上传
+//    ) throws IOException {
+
         Optional<Pet> optionalPet = petRepository.findByPetIdAndIsDeletedFalse(petId);
         if (!optionalPet.isPresent()) {
             return ApiResponse.error(404, "未找到对应的宠物信息");
@@ -220,6 +247,7 @@ public class PetController {
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("petId", pet.getPetId());
+//        responseData.put("customerEmail", pet.getCustomerEmail());
         return ApiResponse.success("宠物信息更新成功", responseData);
     }
 
