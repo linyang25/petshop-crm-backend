@@ -2,6 +2,8 @@ package com.petshop.crmbackend.controller;
 
 
 import javax.persistence.criteria.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.petshop.crmbackend.common.ApiResponse;
 import com.petshop.crmbackend.dto.AppointmentCancelRequest;
@@ -10,6 +12,7 @@ import com.petshop.crmbackend.entity.Appointment;
 import com.petshop.crmbackend.entity.Pet;
 import com.petshop.crmbackend.repository.AppointmentRepository;
 import com.petshop.crmbackend.repository.PetRepository;
+import com.petshop.crmbackend.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,64 +34,89 @@ public class AppointmentController {
 
     private final AppointmentRepository appointmentRepository;
     private final PetRepository petRepository;
+    private final EmailService emailService;
+    private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
 
     public AppointmentController(AppointmentRepository appointmentRepository,
-                                 PetRepository petRepository) {
+                                 PetRepository petRepository,EmailService emailService) {
         this.appointmentRepository = appointmentRepository;
         this.petRepository = petRepository;
+        this.emailService = emailService;
     }
 
     @PostMapping("/create")
     @Operation(summary = "创建预约")
     public ApiResponse<?> createAppointment(@Valid @RequestBody AppointmentRequest request) {
+        // 1. 校验宠物
         if (!petRepository.findByPetIdAndIsDeletedFalse(request.getPetId()).isPresent()) {
             return ApiResponse.error(400, "宠物ID无效或已被删除");
         }
 
-        boolean exists = appointmentRepository.existsByPetIdAndAppointmentDateAndAppointmentTime(
-                request.getPetId(),
-                request.getAppointmentDate(),
-                request.getAppointmentTime()
-        );
-
-        Appointment appointment = new Appointment();
-
-
+        // 2. 去重
+        boolean exists = appointmentRepository
+                .existsByPetIdAndAppointmentDateAndAppointmentTime(
+                        request.getPetId(),
+                        request.getAppointmentDate(),
+                        request.getAppointmentTime()
+                );
         if (exists) {
             return ApiResponse.error(400, "该宠物在该时间已有预约");
         }
 
-       // Appointment appointment = new Appointment();
+        // 3. 构造 Appointment
+        Appointment appointment = new Appointment();
         String code;
         do {
             code = String.format("%08d", new Random().nextInt(100_000_000));
         } while (appointmentRepository.existsByAppointmentId(code));
-
-
         appointment.setAppointmentId(code);
-        appointment.setAppointmentTime(request.getAppointmentTime()); // 类型为 LocalTime
-        appointment.setAppointmentDate(request.getAppointmentDate()); // 类型为 LocalDate
-        appointment.setCustomerName(request.getCustomerName());
         appointment.setPetId(request.getPetId());
+        appointment.setAppointmentDate(request.getAppointmentDate());
+        appointment.setAppointmentTime(request.getAppointmentTime());
+        appointment.setCustomerName(request.getCustomerName());
         appointment.setPhone(request.getPhone());
+        appointment.setCustomerEmail(request.getCustomerEmail());
         appointment.setServiceType(request.getServiceType());
         appointment.setNotes(request.getNotes());
         appointment.setStatus("已预约");
         appointment.setCreatedAt(LocalDateTime.now());
         appointment.setUpdatedAt(LocalDateTime.now());
-        appointment.setCustomerEmail(request.getCustomerEmail());
 
-
+        // 4. 保存到数据库
         appointmentRepository.save(appointment);
 
+        // 5. 准备邮件
+        String to      = appointment.getCustomerEmail();
+        String subject = String.format("[PetCRM] Your appointment is confirmed: %s", appointment.getAppointmentId());
+        String body    = String.format(
+                "Hello %s,\n\n" +
+                        "Your appointment (ID: %s) has been successfully booked for %s at %s to receive \"%s\".\n\n" +
+                        "Notes: %s\n\n" +
+                        "Thank you for choosing PetCRM!\n",
+                appointment.getCustomerName(),
+                appointment.getAppointmentId(),
+                appointment.getAppointmentDate(),
+                appointment.getAppointmentTime(),
+                appointment.getServiceType(),
+                appointment.getNotes()
+        );
+
+        // 6. 发送邮件（捕获异常，避免影响主流程）
+        try {
+            emailService.sendAppointmentReminder(to, subject, body);
+        } catch (Exception e) {
+            log.error("给 {} 发送预约确认邮件失败，预约ID={}", to, appointment.getAppointmentId(), e);
+        }
+
+        // 7. 构造返回
         Map<String, Object> responseData = new HashMap<>();
-        responseData.put("petId", appointment.getPetId());
-        responseData.put("appointmentId", appointment.getAppointmentId());
+        responseData.put("petId",           appointment.getPetId());
+        responseData.put("appointmentId",   appointment.getAppointmentId());
         responseData.put("appointmentDate", appointment.getAppointmentDate());
         responseData.put("appointmentTime", appointment.getAppointmentTime());
-        responseData.put("customerEmail", appointment.getCustomerEmail());
+        responseData.put("customerEmail",   appointment.getCustomerEmail());
 
-        return ApiResponse.success("预约创建成功", responseData);
+        return ApiResponse.success("预约创建成功，邮件已发送", responseData);
     }
 
     @PutMapping("/update/{appointmentId}")
@@ -113,6 +141,30 @@ public class AppointmentController {
 
         appointmentRepository.save(appointment);
 
+
+        // —— 新增：发送更新通知邮件 ——
+        String to      = appointment.getCustomerEmail();
+        String subject = String.format("[PetCRM] Your appointment has been updated: %s", appointment.getAppointmentId());
+        String body    = String.format(
+                "Hello %s,\n\n" +
+                        "Your appointment (ID: %s) has been updated. Here are the new details:\n\n" +
+                        "• Date: %s\n" +
+                        "• Time: %s\n" +
+                        "• Service: %s\n" +
+                        "• Status: %s\n" +
+                        "• Notes: %s\n\n" +
+                        "Thank you for choosing PetCRM!\n",
+                appointment.getCustomerName(),
+                appointment.getAppointmentId(),
+                appointment.getAppointmentDate(),
+                appointment.getAppointmentTime(),
+                appointment.getServiceType(),
+                appointment.getStatus(),
+                appointment.getNotes()
+        );
+        emailService.sendAppointmentReminder(to, subject, body);
+        // —— 发送完成 ——
+
         Map<String, Object> data = new HashMap<>();
         data.put("appointmentId", appointment.getAppointmentId());
         data.put("appointmentDate", appointment.getAppointmentDate());
@@ -122,7 +174,7 @@ public class AppointmentController {
         data.put("notes", appointment.getNotes());
         //data.put("customerEmail", appointment.getCustomerEmail());
 
-        return ApiResponse.success("预约更新成功", data);
+        return ApiResponse.success("预约更新成功，并已发送更新确认邮件", data);
     }
 
 
@@ -159,6 +211,23 @@ public class AppointmentController {
         appointment.setStatus("已取消");
         appointment.setUpdatedAt(LocalDateTime.now());
         appointmentRepository.save(appointment);
+
+        // —— 新增：发送取消确认邮件 ——
+        String to      = appointment.getCustomerEmail();
+        String subject = String.format("[PetCRM] Your appointment has been cancelled: %s", appointment.getAppointmentId());
+        String body    = String.format(
+                "Hello %s,\n\n" +
+                        "We regret to inform you that your appointment (ID: %s) scheduled on %s at %s for “%s” has been cancelled.\n\n" +
+                        "If you wish to reschedule, please feel free to contact us.\n\n" +
+                        "Thank you for understanding,\n" +
+                        "PetCRM Team\n",
+                appointment.getCustomerName(),
+                appointment.getAppointmentId(),
+                appointment.getAppointmentDate(),
+                appointment.getAppointmentTime(),
+                appointment.getServiceType()
+        );
+        emailService.sendAppointmentReminder(to, subject, body);
 
         Map<String, Object> data = new HashMap<>();
         data.put("appointmentId", appointment.getAppointmentId());

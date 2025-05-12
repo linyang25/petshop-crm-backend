@@ -9,9 +9,9 @@ import com.petshop.crmbackend.repository.AppointmentRepository;
 import com.petshop.crmbackend.common.ApiResponse;
 import com.petshop.crmbackend.service.S3StorageService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
+import org.springframework.web.bind.annotation.CrossOrigin;
+
+
 import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -288,6 +288,7 @@ public class PetController {
         return ApiResponse.success("查询成功", result);
     }
 
+    
     @GetMapping("/list")
     @Operation(summary = "查询宠物列表（支持多条件组合筛选）")
     public ApiResponse<?> listPets(
