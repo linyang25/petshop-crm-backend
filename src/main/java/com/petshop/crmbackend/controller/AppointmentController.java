@@ -2,6 +2,8 @@ package com.petshop.crmbackend.controller;
 
 
 import javax.persistence.criteria.Predicate;
+
+import com.petshop.crmbackend.config.DailyReminderScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +16,7 @@ import com.petshop.crmbackend.repository.AppointmentRepository;
 import com.petshop.crmbackend.repository.PetRepository;
 import com.petshop.crmbackend.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
+import com.petshop.crmbackend.config.DailyReminderScheduler;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,13 +39,26 @@ public class AppointmentController {
     private final PetRepository petRepository;
     private final EmailService emailService;
     private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
+    private final DailyReminderScheduler scheduler;
+
 
     public AppointmentController(AppointmentRepository appointmentRepository,
-                                 PetRepository petRepository,EmailService emailService) {
+                                 PetRepository petRepository,EmailService emailService,DailyReminderScheduler scheduler) {
         this.appointmentRepository = appointmentRepository;
         this.petRepository = petRepository;
         this.emailService = emailService;
+        this.scheduler = scheduler;
     }
+
+
+
+    @GetMapping("/trigger-reminder")
+    @Operation(summary = "定时任务测试接口")
+    public String triggerReminder() {
+        scheduler.sendTodayAppointmentsReminder();
+        return "Daily reminder triggered";
+    }
+
 
     @PostMapping("/create")
     @Operation(summary = "创建预约")
@@ -232,7 +248,7 @@ public class AppointmentController {
         Map<String, Object> data = new HashMap<>();
         data.put("appointmentId", appointment.getAppointmentId());
         data.put("status", appointment.getStatus());
-        return ApiResponse.success("预约取消成功", data);
+        return ApiResponse.success("Appointment cancelled successfully and confirmation email sent.", data);
     }
     @GetMapping("/detail/{appointmentId}")
     @Operation(summary = "获取预约详情")
@@ -354,5 +370,8 @@ public class AppointmentController {
 
         return ApiResponse.success("查询成功", list);
     }
+
+
+
 }
 

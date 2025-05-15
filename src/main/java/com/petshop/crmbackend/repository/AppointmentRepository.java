@@ -72,6 +72,17 @@ public interface AppointmentRepository
     // 热门服务排行榜
     @Query("SELECT a.serviceType, COUNT(a) FROM Appointment a GROUP BY a.serviceType ORDER BY COUNT(a) DESC")
     List<Object[]> groupByService();
+
+
+    List<Appointment> findAllByAppointmentDateAndStatusAndReminderSent(
+            LocalDate date, String status, boolean reminderSent);
+
+    List<Appointment> findAllByAppointmentDateAndStatus(LocalDate date, String status);
+
+    List<Appointment> findAllByAppointmentDateAndStatusAndReminderSentFalse(LocalDate date, String status);
+
+
+
 }
 
 

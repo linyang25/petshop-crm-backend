@@ -41,6 +41,7 @@ public class Appointment {
 
     private boolean reminderSent = false;
 
+    @Column(name = "reminder_sent", nullable = false)
     public boolean isReminderSent() {
         return reminderSent;
     }
