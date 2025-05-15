@@ -21,8 +21,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 
 
 
-
-
 import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URL;
@@ -92,13 +90,13 @@ public class PetController {
         // 生成唯一 petId（五位数）
         Long petId = generateUniquePetId();
         if (petId == null) {
-            return ApiResponse.error(400, "系统繁忙，请稍后再试");
+            return ApiResponse.error(400, "The system is currently busy. Please try again later.");
         }
 
         // 解析 birthday 支持多种格式
         LocalDate birthday = parseBirthday(info.getBirthday());
         if (birthday == null && info.getBirthday() != null) {
-            return ApiResponse.error(400, "生日格式不正确，应为 yyyy-MM-dd 或 yyyy/MM/dd");
+            return ApiResponse.error(400, "The birthdate format is invalid. It should be yyyy-MM-dd or yyyy/MM/dd.");
         }
 
         // 若 petId 或信息重复，禁止添加
@@ -112,7 +110,7 @@ public class PetController {
         );
 
         if (existingPet.isPresent()) {
-            return ApiResponse.error(400, "不可重复添加；已存在petId 为: " + existingPet.get().getPetId());
+            return ApiResponse.error(400, "Duplicate entries are not allowed; petId already exists: " + existingPet.get().getPetId());
         }
 
 
@@ -146,7 +144,7 @@ public class PetController {
         responseData.put("URL", url);
 //        responseData.put("customerEmail", pet.getCustomerEmail());
 
-        return ApiResponse.success("宠物信息添加成功", responseData);
+        return ApiResponse.success("Pet information added successfully.", responseData);
     }
 
     // 生成唯一 petId（5位数字）
@@ -179,19 +177,19 @@ public class PetController {
     public ApiResponse<?> deletePet(@PathVariable Long petId) {
         Optional<Pet> optionalPet = petRepository.findByPetId(petId);
         if (!optionalPet.isPresent()) {
-            return ApiResponse.error(404, "未找到对应的宠物，无法删除");
+            return ApiResponse.error(404, "No matching pet was found; unable to delete.");
         }
 
         Pet pet = optionalPet.get();
         if (pet.getIsDeleted()) {
-            return ApiResponse.error(400, "宠物信息已删除,无法再次删除");
+            return ApiResponse.error(400, "Pet information has already been deleted and cannot be deleted again.");
         }
 
         pet.setIsDeleted(true);
         petRepository.save(pet);
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("petId", pet.getPetId());
-        return ApiResponse.success("宠物信息删除成功", responseData);
+        return ApiResponse.success("Pet information deleted successfully.", responseData);
     }
 
     @PutMapping(path = "/update/{petId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -216,7 +214,7 @@ public class PetController {
 
         Optional<Pet> optionalPet = petRepository.findByPetIdAndIsDeletedFalse(petId);
         if (!optionalPet.isPresent()) {
-            return ApiResponse.error(404, "未找到对应的宠物信息");
+            return ApiResponse.error(404, "No corresponding pet information was found.");
         }
 
         Pet pet = optionalPet.get();
@@ -232,7 +230,7 @@ public class PetController {
                         DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 pet.setBirthday(birthday);
             } catch (DateTimeParseException e) {
-                return ApiResponse.error(400, "生日格式错误，应为 yyyy-MM-dd");
+                return ApiResponse.error(400, "The birthdate format is invalid. It should be yyyy-MM-dd or yyyy/MM/dd.");
             }
         }
 
@@ -248,7 +246,7 @@ public class PetController {
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("petId", pet.getPetId());
 //        responseData.put("customerEmail", pet.getCustomerEmail());
-        return ApiResponse.success("宠物信息更新成功", responseData);
+        return ApiResponse.success("Pet information updated successfully.", responseData);
     }
 
     @GetMapping("/detail/{petId}")
@@ -256,7 +254,7 @@ public class PetController {
     public ApiResponse<?> getPetDetails(@PathVariable Long petId) {
         Optional<Pet> optionalPet = petRepository.findByPetIdAndIsDeletedFalse(petId);
         if (!optionalPet.isPresent()) {
-            return ApiResponse.error(404, "未找到该宠物或已被删除");
+            return ApiResponse.error(404, "The pet information was not found or has already been deleted.");
         }
 
         Pet pet = optionalPet.get();
@@ -285,7 +283,7 @@ public class PetController {
             }
         }
 
-        return ApiResponse.success("查询成功", result);
+        return ApiResponse.success("Query successful.", result);
     }
 
     
@@ -324,7 +322,7 @@ public class PetController {
             result.add(item);
         }
 
-        return ApiResponse.success("查询成功", result);
+        return ApiResponse.success("Query successful.", result);
     }
 
 

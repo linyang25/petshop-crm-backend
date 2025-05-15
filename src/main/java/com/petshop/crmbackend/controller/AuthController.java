@@ -40,11 +40,11 @@ public class AuthController {
 
 
         if (userRepository.existsByUsername(username)) {
-            return ApiResponse.error(400, "用户名已存在");
+            return ApiResponse.error(400, "Username already exists.");
         }
 
         if (userRepository.existsByUsernameAndPhone(username, phone)) {
-            return ApiResponse.error(400, "用户已存在");
+            return ApiResponse.error(400, "User already exists.");
         }
 
         // 生成5位随机userId
@@ -72,7 +72,7 @@ public class AuthController {
         responseData.put("userId", user.getUserId());
         responseData.put("username", user.getUsername());
 
-        return ApiResponse.success("注册成功", responseData);
+        return ApiResponse.success("Registration successful.", responseData);
     }
 
     // 生成5位随机数
@@ -91,12 +91,12 @@ public class AuthController {
         // 查询用户
         User user = userRepository.findByUsername(username);
         if (user == null) {
-            return ApiResponse.error(400, "用户不存在");
+            return ApiResponse.error(400, "User does not exist.");
         }
 
         // 校验密码
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            return ApiResponse.error(400, "用户名或密码错误");
+            return ApiResponse.error(400, "Username or password is incorrect.");
         }
 
         // 生成Token
@@ -110,14 +110,14 @@ public class AuthController {
                 token  // token
         );
 
-        return ApiResponse.success("登录成功", loginResponse);
+        return ApiResponse.success("Login successful.", loginResponse);
     }
 
 
     @Operation(summary = "用户退出登录接口")
     @PostMapping("/logout")
     public ApiResponse<?> logout() {
-        return ApiResponse.success("退出登录成功", null);
+        return ApiResponse.success("Logout successful.", null);
     }
 
 

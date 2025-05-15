@@ -65,7 +65,7 @@ public class AppointmentController {
     public ApiResponse<?> createAppointment(@Valid @RequestBody AppointmentRequest request) {
         // 1. 校验宠物
         if (!petRepository.findByPetIdAndIsDeletedFalse(request.getPetId()).isPresent()) {
-            return ApiResponse.error(400, "宠物ID无效或已被删除");
+            return ApiResponse.error(400, "The pet information was not found or has already been deleted.");
         }
 
         // 2. 去重
@@ -76,7 +76,7 @@ public class AppointmentController {
                         request.getAppointmentTime()
                 );
         if (exists) {
-            return ApiResponse.error(400, "该宠物在该时间已有预约");
+            return ApiResponse.error(400, "The pet already has an appointment at that time");
         }
 
         // 3. 构造 Appointment
@@ -103,12 +103,12 @@ public class AppointmentController {
 
         // 5. 准备邮件
         String to      = appointment.getCustomerEmail();
-        String subject = String.format("[PetCRM] Your appointment is confirmed: %s", appointment.getAppointmentId());
+        String subject = String.format("[Pet Service Team] Your appointment is confirmed: %s", appointment.getAppointmentId());
         String body    = String.format(
                 "Hello %s,\n\n" +
                         "Your appointment (ID: %s) has been successfully booked for %s at %s to receive \"%s\".\n\n" +
                         "Notes: %s\n\n" +
-                        "Thank you for choosing PetCRM!\n",
+                        "Thank you for choosing our Pet Management System!\n",
                 appointment.getCustomerName(),
                 appointment.getAppointmentId(),
                 appointment.getAppointmentDate(),
@@ -132,7 +132,7 @@ public class AppointmentController {
         responseData.put("appointmentTime", appointment.getAppointmentTime());
         responseData.put("customerEmail",   appointment.getCustomerEmail());
 
-        return ApiResponse.success("预约创建成功，邮件已发送", responseData);
+        return ApiResponse.success("Appointment created successfully, and an email has been sent.", responseData);
     }
 
     @PutMapping("/update/{appointmentId}")
@@ -143,7 +143,7 @@ public class AppointmentController {
 
         Optional<Appointment> optional = appointmentRepository.findByAppointmentId(appointmentId);
         if (!optional.isPresent()) {
-            return ApiResponse.error(404, "未找到对应的预约记录");
+            return ApiResponse.error(404, "No matching appointment record was found.");
         }
         Appointment appointment = optional.get();
 
@@ -160,7 +160,7 @@ public class AppointmentController {
 
         // —— 新增：发送更新通知邮件 ——
         String to      = appointment.getCustomerEmail();
-        String subject = String.format("[PetCRM] Your appointment has been updated: %s", appointment.getAppointmentId());
+        String subject = String.format("[Pet Service Team] Your appointment has been updated: %s", appointment.getAppointmentId());
         String body    = String.format(
                 "Hello %s,\n\n" +
                         "Your appointment (ID: %s) has been updated. Here are the new details:\n\n" +
@@ -169,7 +169,7 @@ public class AppointmentController {
                         "• Service: %s\n" +
                         "• Status: %s\n" +
                         "• Notes: %s\n\n" +
-                        "Thank you for choosing PetCRM!\n",
+                        "Thank you for choosing our Pet management system!\n",
                 appointment.getCustomerName(),
                 appointment.getAppointmentId(),
                 appointment.getAppointmentDate(),
@@ -190,7 +190,7 @@ public class AppointmentController {
         data.put("notes", appointment.getNotes());
         //data.put("customerEmail", appointment.getCustomerEmail());
 
-        return ApiResponse.success("预约更新成功，并已发送更新确认邮件", data);
+        return ApiResponse.success("Appointment updated successfully, and a confirmation email has been sent.", data);
     }
 
 
@@ -212,16 +212,16 @@ public class AppointmentController {
                             req.getAppointmentDate(),
                             req.getAppointmentTime());
         } else {
-            return ApiResponse.error(400, "请提供 appointmentId，或 petId + appointmentDate + appointmentTime");
+            return ApiResponse.error(400, "Please provide the appointmentId, or the petId, appointmentDate, and appointmentTime.");
         }
 
         if (!optional.isPresent()) {
-            return ApiResponse.error(404, "未找到对应的预约");
+            return ApiResponse.error(404, "No matching appointment record was found.");
         }
 
         Appointment appointment = optional.get();
         if ("已取消".equals(appointment.getStatus())) {
-            return ApiResponse.error(400, "该预约已是取消状态");
+            return ApiResponse.error(400, "This appointment has already been canceled.");
         }
 
         appointment.setStatus("已取消");
@@ -230,13 +230,13 @@ public class AppointmentController {
 
         // —— 新增：发送取消确认邮件 ——
         String to      = appointment.getCustomerEmail();
-        String subject = String.format("[PetCRM] Your appointment has been cancelled: %s", appointment.getAppointmentId());
+        String subject = String.format("[Pet Service Team] Your appointment has been cancelled: %s", appointment.getAppointmentId());
         String body    = String.format(
                 "Hello %s,\n\n" +
                         "We regret to inform you that your appointment (ID: %s) scheduled on %s at %s for “%s” has been cancelled.\n\n" +
                         "If you wish to reschedule, please feel free to contact us.\n\n" +
                         "Thank you for understanding,\n" +
-                        "PetCRM Team\n",
+                        "Pet Service Team\n",
                 appointment.getCustomerName(),
                 appointment.getAppointmentId(),
                 appointment.getAppointmentDate(),
@@ -255,13 +255,13 @@ public class AppointmentController {
     public ApiResponse<?> getAppointmentDetail(@PathVariable String appointmentId) {
         Optional<Appointment> optional = appointmentRepository.findByAppointmentId(appointmentId);
         if (!optional.isPresent()) {
-            return ApiResponse.error(404, "未找到对应的预约");
+            return ApiResponse.error(404, "No matching appointment record was found.");
         }
         Appointment ap = optional.get();
         // 再查宠物
         Optional<Pet> optionalPet = petRepository.findByPetIdAndIsDeletedFalse(ap.getPetId());
         if (!optionalPet.isPresent()) {
-            return ApiResponse.error(404, "未找到对应的宠物");
+            return ApiResponse.error(404, "No matching pet information was found.");
         }
         Pet pet = optionalPet.get();
 
@@ -283,7 +283,7 @@ public class AppointmentController {
         data.put("customerEmail",         ap.getCustomerEmail());
 
 
-        return ApiResponse.success("查询成功", data);
+        return ApiResponse.success("Query successful.", data);
     }
 
 
@@ -345,12 +345,15 @@ public class AppointmentController {
 
         List<Appointment> resultList = appointmentRepository.findAll(spec, sort);
 
-
         List<Map<String,Object>> list = resultList.stream().map(ap -> {
             Map<String,Object> m = new HashMap<>();
             // 查一下宠物
             petRepository.findByPetIdAndIsDeletedFalse(ap.getPetId())
-                    .ifPresent(pet -> m.put("petName", pet.getPetName()));
+                    .ifPresent(pet -> {
+                        m.put("petName", pet.getPetName());
+                        m.put("species",  pet.getSpecies());
+                        m.put("breed",    pet.getBreedName());
+                    });
             m.put("appointmentId",   ap.getAppointmentId());
             m.put("petId",           ap.getPetId());
             m.put("customerName",    ap.getCustomerName());
@@ -361,14 +364,10 @@ public class AppointmentController {
             m.put("appointmentTime", ap.getAppointmentTime());
             m.put("notes",           ap.getNotes());
             m.put("customerEmail",         ap.getCustomerEmail());
-
-
-
-
             return m;
         }).collect(Collectors.toList());
 
-        return ApiResponse.success("查询成功", list);
+        return ApiResponse.success("Query successful.", list);
     }
 
 

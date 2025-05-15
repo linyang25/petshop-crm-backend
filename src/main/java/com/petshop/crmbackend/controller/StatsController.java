@@ -27,13 +27,13 @@ public class StatsController {
     @Operation(summary = "获取预约维度统计报表")
     public ApiResponse<AppointmentStatsDto> getAppointmentStats() {
         AppointmentStatsDto dto = appointmentStatsService.buildAppointmentStats();
-        return ApiResponse.success("预约统计数据", dto);
+        return ApiResponse.success("Appointment statistics data", dto);
     }
 
     @GetMapping("/pets")
     @Operation(summary = "获取宠物维度统计报表")
     public ApiResponse<PetStatsDto> getPetStats() {
         PetStatsDto dto = petStatsService.getPetStats();
-        return ApiResponse.success("宠物统计数据", dto);
+        return ApiResponse.success("Pet statistics data.", dto);
     }
 }
