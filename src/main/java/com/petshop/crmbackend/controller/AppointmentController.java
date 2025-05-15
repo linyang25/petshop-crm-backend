@@ -169,7 +169,7 @@ public class AppointmentController {
                         "• Service: %s\n" +
                         "• Status: %s\n" +
                         "• Notes: %s\n\n" +
-                        "Thank you for choosing our Pet management system!\n",
+                        "Thank you for choosing our Pet Management system!\n",
                 appointment.getCustomerName(),
                 appointment.getAppointmentId(),
                 appointment.getAppointmentDate(),
