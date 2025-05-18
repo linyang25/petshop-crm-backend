@@ -94,7 +94,7 @@ public class AppointmentController {
         appointment.setCustomerEmail(request.getCustomerEmail());
         appointment.setServiceType(request.getServiceType());
         appointment.setNotes(request.getNotes());
-        appointment.setStatus("已预约");
+        appointment.setStatus("Scheduled");
         appointment.setCreatedAt(LocalDateTime.now());
         appointment.setUpdatedAt(LocalDateTime.now());
 
@@ -154,6 +154,8 @@ public class AppointmentController {
         appointment.setStatus(request.getStatus());
         appointment.setNotes(request.getNotes());
         appointment.setUpdatedAt(LocalDateTime.now());
+        appointment.setStatus("Rescheduled");
+
 
         appointmentRepository.save(appointment);
 
@@ -163,13 +165,9 @@ public class AppointmentController {
         String subject = String.format("[Pet Service Team] Your appointment has been updated: %s", appointment.getAppointmentId());
         String body    = String.format(
                 "Hello %s,\n\n" +
-                        "Your appointment (ID: %s) has been updated. Here are the new details:\n\n" +
-                        "• Date: %s\n" +
-                        "• Time: %s\n" +
-                        "• Service: %s\n" +
-                        "• Status: %s\n" +
-                        "• Notes: %s\n\n" +
-                        "Thank you for choosing our Pet Management system!\n",
+                        "Your appointment (ID: %s) has been successfully updated for %s at %s to receive \"%s\".\n\n" +
+                        "Notes: %s\n\n" +
+                        "Thank you for choosing our Pet Management System!\n",
                 appointment.getCustomerName(),
                 appointment.getAppointmentId(),
                 appointment.getAppointmentDate(),
@@ -178,8 +176,12 @@ public class AppointmentController {
                 appointment.getStatus(),
                 appointment.getNotes()
         );
-        emailService.sendAppointmentReminder(to, subject, body);
-        // —— 发送完成 ——
+        try {
+            emailService.sendAppointmentReminder(to, subject, body);
+        } catch (Exception e) {
+            log.error("发送更新邮件失败，appointmentId={}", appointmentId, e);
+        }
+
 
         Map<String, Object> data = new HashMap<>();
         data.put("appointmentId", appointment.getAppointmentId());
@@ -220,11 +222,11 @@ public class AppointmentController {
         }
 
         Appointment appointment = optional.get();
-        if ("已取消".equals(appointment.getStatus())) {
+        if ("Cancelled".equals(appointment.getStatus())) {
             return ApiResponse.error(400, "This appointment has already been canceled.");
         }
 
-        appointment.setStatus("已取消");
+        appointment.setStatus("Cancelled");
         appointment.setUpdatedAt(LocalDateTime.now());
         appointmentRepository.save(appointment);
 
@@ -235,15 +237,19 @@ public class AppointmentController {
                 "Hello %s,\n\n" +
                         "We regret to inform you that your appointment (ID: %s) scheduled on %s at %s for “%s” has been cancelled.\n\n" +
                         "If you wish to reschedule, please feel free to contact us.\n\n" +
-                        "Thank you for understanding,\n" +
-                        "Pet Service Team\n",
+                        "Thank you for choosing our Pet Management System!\n",
                 appointment.getCustomerName(),
                 appointment.getAppointmentId(),
                 appointment.getAppointmentDate(),
                 appointment.getAppointmentTime(),
                 appointment.getServiceType()
         );
-        emailService.sendAppointmentReminder(to, subject, body);
+        try {
+            emailService.sendAppointmentReminder(to, subject, body);
+        } catch (Exception e) {
+            log.error("Failed to send cancellation email to {}, appointmentId={}",
+                    to, appointment.getAppointmentId(), e);
+        }
 
         Map<String, Object> data = new HashMap<>();
         data.put("appointmentId", appointment.getAppointmentId());

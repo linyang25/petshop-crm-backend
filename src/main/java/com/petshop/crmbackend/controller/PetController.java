@@ -58,35 +58,6 @@ public class PetController {
         AddPetRequest info = new ObjectMapper().readValue(infoJson, AddPetRequest.class);
 
 
-//    @PostMapping(path = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//    @Operation(summary = "添加宠物信息及照片")
-//    public ApiResponse<?> addPet(
-//            @Parameter(
-//                    in = ParameterIn.DEFAULT,
-//                    name = "info",
-//                    description = "宠物信息 JSON",
-//                    required = true,
-//                    content = @Content(
-//                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-//                            schema = @Schema(implementation = AddPetRequest.class)
-//                    )
-//            )
-//            @RequestPart("info") @Valid AddPetRequest info,
-//
-//            // —— 第二个 part，指定 mediaType = application/octet-stream
-//            @Parameter(
-//                    in = ParameterIn.DEFAULT,
-//                    name = "file",
-//                    description = "上传的照片",
-//                    required = true,
-//                    content = @Content(
-//                            mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE,
-//                            schema = @Schema(type = "string", format = "binary")
-//                    )
-//            )
-//            @RequestPart("file") MultipartFile file
-//    )  throws IOException {
-
         // 生成唯一 petId（五位数）
         Long petId = generateUniquePetId();
         if (petId == null) {
@@ -135,15 +106,12 @@ public class PetController {
         String url = storageService.upload(file, key);
 
 
-//        String url = storageService.upload(file, pet.getPetId().toString());
         pet.setProfilePhoto(url);
 
         petRepository.save(pet);
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("petId", pet.getPetId());
         responseData.put("URL", url);
-//        responseData.put("customerEmail", pet.getCustomerEmail());
-
         return ApiResponse.success("Pet information added successfully.", responseData);
     }
 
@@ -260,6 +228,7 @@ public class PetController {
         Pet pet = optionalPet.get();
         boolean hasAppointment = appointmentRepository.existsByPetId(pet.getPetId());
         Map<String, Object> result = new HashMap<>();
+        result.put("PetName", pet.getPetName());
         result.put("customerName", pet.getCustomerName());
         result.put("species", pet.getSpecies());
         result.put("breedName", pet.getBreedName());
@@ -314,10 +283,14 @@ public class PetController {
         for (Pet p : allPets) {
             Map<String, Object> item = new HashMap<>();
             item.put("petId", p.getPetId());
-            item.put("customerName", p.getCustomerName());
             item.put("petName", p.getPetName());
+            item.put("ProfilePhoto", p.getProfilePhoto());
+            item.put("customerName", p.getCustomerName());
+            item.put("species", p.getSpecies());
             item.put("breedName", p.getBreedName());
             item.put("gender", p.getGender());
+            item.put("birthday", p.getBirthday());
+            item.put("description", p.getDescription());
             item.put("hasAppointment", appointmentRepository.existsByPetId(p.getId()));
             result.add(item);
         }

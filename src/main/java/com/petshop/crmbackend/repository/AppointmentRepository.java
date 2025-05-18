@@ -1,6 +1,8 @@
 package com.petshop.crmbackend.repository;
 
 import com.petshop.crmbackend.entity.Appointment;
+import com.petshop.crmbackend.repository.projection.DayCountProjection;
+import com.petshop.crmbackend.repository.projection.LabelValueProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -31,9 +33,6 @@ public interface AppointmentRepository
     Optional<Appointment> findByPetIdAndAppointmentDateAndAppointmentTime(
             Long petId, LocalDate appointmentDate, LocalTime appointmentTime);
 
-//
-//    boolean findByAppointmentId(String appointmentId);
-//    boolean existsByAppointmentId(String appointmentId);
     /**
      * 根据业务预约号查询
      */
@@ -80,6 +79,65 @@ public interface AppointmentRepository
     List<Appointment> findAllByAppointmentDateAndStatus(LocalDate date, String status);
 
     List<Appointment> findAllByAppointmentDateAndStatusAndReminderSentFalse(LocalDate date, String status);
+
+
+    /** 当日预约总数 未排除已取消预约**/
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.appointmentDate = :date")
+    long countByAppointmentDate(@Param("date") LocalDate date);
+
+    /** 当日取消总数 **/
+    @Query("SELECT COUNT(a) FROM Appointment a " +
+            " WHERE a.appointmentDate = :date AND a.status = 'Cancelled'")
+    long countByAppointmentDateAndCancelled(@Param("date") LocalDate date);
+
+
+
+    /** 按物种统计（排除已删除） **/
+    @Query(
+            "SELECT p.species AS label, COUNT(a) AS value " +
+                    "FROM Appointment a, Pet p " +
+                    "WHERE p.petId = a.petId " +
+                    "  AND p.isDeleted = false " +
+                    "GROUP BY p.species"
+    )
+    List<LabelValueProjection> countPetsBySpecies();
+
+    /** 按品种统计（排除已删除） **/
+    @Query(
+            "SELECT p.breedName AS label, COUNT(a) AS value " +
+                    "FROM Appointment a, Pet p " +
+                    "WHERE p.petId = a.petId " +
+                    "  AND p.isDeleted = false " +
+                    "GROUP BY p.breedName"
+    )
+    List<LabelValueProjection> countPetsByBreed();
+
+
+    /** 最近7天每日趋势，包括取消预约**/
+    @Query(
+            "SELECT FUNCTION('DAYNAME', a.appointmentDate) AS day, COUNT(a) AS count " +
+                    "FROM Appointment a " +
+                    "WHERE a.appointmentDate BETWEEN CURRENT_DATE - 6 AND CURRENT_DATE " +
+                    "GROUP BY FUNCTION('DAYOFWEEK', a.appointmentDate) " +
+                    "ORDER BY FUNCTION('DAYOFWEEK', a.appointmentDate)"
+    )
+    List<DayCountProjection> countPerDayLast7Days();
+
+
+    /**
+     * 热门服务排行榜（排除已取消）
+     */
+    @Query(
+            "SELECT a.serviceType AS label, COUNT(a) AS value " +
+                    "FROM Appointment a " +
+                    "WHERE a.status <> 'Cancelled' " +
+                    "GROUP BY a.serviceType " +
+                    "ORDER BY COUNT(a) DESC"
+    )
+    List<LabelValueProjection> countByServiceType();
+
+
+
 
 
 
