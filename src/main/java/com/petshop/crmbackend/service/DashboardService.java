@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,6 +39,13 @@ public class DashboardService {
         dto.setTotalPets(petRepo.countByIsDeletedFalse() );
         dto.setAppointmentsToday( apptRepo.countByAppointmentDate(today) );
         dto.setCancelledToday( apptRepo.countByAppointmentDateAndCancelled(today) );
+
+
+        // —— 新增：今日新增宠物数 ——
+        LocalDateTime startOfToday = today.atStartOfDay();
+        LocalDateTime startOfTomorrow = today.plusDays(1).atStartOfDay();
+        long newPetsToday = petRepo.countByCreatedAtBetweenAndIsDeletedFalse(startOfToday, startOfTomorrow);
+        dto.setNewPetsToday(newPetsToday);
 
 
         // 2. 物种分布（基于所有未删除的宠物，带百分比）--宠物信息

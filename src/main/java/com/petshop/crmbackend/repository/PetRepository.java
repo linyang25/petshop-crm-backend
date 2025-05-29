@@ -30,7 +30,6 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
     );
     long countByIsDeletedFalse();
 
-    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
 //    @Query("SELECT p.species, COUNT(p) FROM Pet p WHERE p.isDeleted = false GROUP BY p.species")
 //    List<Object[]> countBySpecies();
@@ -64,6 +63,11 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
                     "GROUP BY p.breedName"
     )
     List<LabelValueProjection> countByBreed();
+
+
+    // 统计某段时间内新建且未删除的宠物数
+    long countByCreatedAtBetweenAndIsDeletedFalse(LocalDateTime start, LocalDateTime end);
+
 
 
 }

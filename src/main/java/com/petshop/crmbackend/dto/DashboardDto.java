@@ -5,6 +5,7 @@ import java.util.List;
 // 仪表盘整体数据 DTO
 public class DashboardDto {
     private long totalPets;
+    private long newPetsToday;
     private long totalCustomers;
     private long appointmentsToday;
     private long cancelledToday;
@@ -34,6 +35,13 @@ public class DashboardDto {
     public List<DayCount> getWeeklyAppointmentTrend() { return weeklyAppointmentTrend; }
     public void setWeeklyAppointmentTrend(List<DayCount> weeklyAppointmentTrend) { this.weeklyAppointmentTrend = weeklyAppointmentTrend; }
 
+
+    public long getNewPetsToday() {
+        return newPetsToday;
+    }
+    public void setNewPetsToday(long newPetsToday) {
+        this.newPetsToday = newPetsToday;
+    }
     public List<AppointmentSummaryDto> getTodayAppointments() { return todayAppointments; }
     public void setTodayAppointments(List<AppointmentSummaryDto> todayAppointments) { this.todayAppointments = todayAppointments; }
 }
